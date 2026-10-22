@@ -96,3 +96,72 @@ export function buildBrandSummary(
         right.requests - left.requests
     )
 }
+
+export interface ProviderSeries {
+  provider: string
+  requests: number
+  errors: number
+  successRate: number | null
+  points: SuccessRatePoint[]
+}
+
+/**
+ * One series per provider, within whatever filters are active.
+ *
+ * Selecting a brand merges providers into a single brand figure, but the brand
+ * figure hides which provider actually served the traffic. This keeps the
+ * providers side by side so they can be compared on the same timeline.
+ */
+export function buildProviderTimeline(
+  daily: DailySuccessRow[],
+  dayKeys: string[],
+  providerFromModel: (provider: string) => string = (provider) => provider
+): ProviderSeries[] {
+  const byProvider = new Map<
+    string,
+    Map<string, { requests: number; errors: number }>
+  >()
+  for (const row of daily) {
+    const provider = providerFromModel(row.provider)
+    if (!provider || provider === "unknown") continue
+    let dates = byProvider.get(provider)
+    if (!dates) {
+      dates = new Map()
+      byProvider.set(provider, dates)
+    }
+    const current = dates.get(row.date) ?? { requests: 0, errors: 0 }
+    current.requests += row.requests
+    current.errors += row.errors
+    dates.set(row.date, current)
+  }
+
+  return [...byProvider]
+    .map(([provider, dates]) => {
+      const totals = [...dates.values()].reduce(
+        (accumulator, value) => ({
+          requests: accumulator.requests + value.requests,
+          errors: accumulator.errors + value.errors,
+        }),
+        { requests: 0, errors: 0 }
+      )
+      return {
+        provider,
+        requests: totals.requests,
+        errors: totals.errors,
+        successRate: successRateFrom(totals.requests, totals.errors),
+        points: dayKeys.map((date) => {
+          const aggregate = dates.get(date) ?? { requests: 0, errors: 0 }
+          return {
+            date,
+            requests: aggregate.requests,
+            errors: aggregate.errors,
+            successRate: successRateFrom(
+              aggregate.requests,
+              aggregate.errors
+            ),
+          }
+        }),
+      }
+    })
+    .toSorted((left, right) => right.requests - left.requests)
+}

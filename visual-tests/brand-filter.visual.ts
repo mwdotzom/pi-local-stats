@@ -196,3 +196,146 @@ test("brand choice reads as one entry covering all providers", async ({
   // providers serve it.
   await expect(page.locator(".recharts-line-curve")).toHaveCount(1)
 })
+
+test("selecting a brand splits the overall timeline per provider", async ({
+  page,
+}) => {
+  const days = ["2026-10-18", "2026-10-19", "2026-10-20"]
+  const series = (provider: string, requests: number, errors: number) => ({
+    provider,
+    requests,
+    errors,
+    successRate: 1 - errors / requests,
+    points: days.map((date) => ({
+      date,
+      requests: requests / 3,
+      errors: errors / 3,
+      successRate: 1 - errors / requests,
+    })),
+  })
+  const twoProviders = {
+    ...base,
+    filters: {
+      range: "all",
+      project: "",
+      brand: "deepseek",
+      provider: "",
+      model: "",
+    },
+    options: { ...base.options, brands: ["deepseek", "glm"] },
+    overview: { ...base.overview, requests: 33_095, errorRate: 0.14 },
+    successTimeline: days.map((date) => ({
+      date,
+      requests: 11_031,
+      errors: 1_544,
+      successRate: 0.86,
+    })),
+    providerTimeline: [
+      series("happycoding", 18_243, 274),
+      series("fengwind", 14_852, 3_750),
+    ],
+    brandSummary: [
+      {
+        brand: "deepseek",
+        requests: 33_095,
+        errors: 4_024,
+        successRate: 0.878,
+        tokens: 1_000,
+        cacheReadTokens: 500,
+        cacheRate: 0.5,
+        cost: 0,
+        providerCount: 2,
+        modelCount: 2,
+        points: days.map((date) => ({
+          date,
+          requests: 11_031,
+          errors: 1_344,
+          successRate: 0.878,
+        })),
+      },
+    ],
+  } as unknown as StatsResponse
+
+  await page.route("**/api/**", async (route) => {
+    await route.fulfill({ json: twoProviders })
+  })
+  await page.setViewportSize({ width: 1440, height: 1200 })
+  await page.goto("/")
+
+  await expect(
+    page.getByText("Success rate over time · deepseek by provider", {
+      exact: true,
+    })
+  ).toBeVisible()
+
+  // One line per provider, each with its own colour and dash pattern.
+  const curves = page.locator(".recharts-line-curve")
+  await expect(curves).toHaveCount(2)
+  const strokes = await curves.evaluateAll((nodes) =>
+    nodes.map((node) => ({
+      stroke: node.getAttribute("stroke"),
+      dash: node.getAttribute("stroke-dasharray"),
+    }))
+  )
+  expect(new Set(strokes.map((s) => s.stroke)).size).toBe(2)
+  expect(strokes.map((s) => s.dash)).toEqual([null, "6 3"])
+
+  // Markers keep sparse providers visible.
+  await expect(page.locator(".recharts-line-dots circle").first()).toBeVisible()
+
+  const legend = page.getByLabel("Success rate by provider")
+  await expect(legend.locator("li")).toHaveCount(2)
+  await expect(legend).toContainText("happycoding")
+  await expect(legend).toContainText("fengwind")
+})
+
+test("coincident provider curves stay distinguishable", async ({ page }) => {
+  const days = ["2026-10-18", "2026-10-19", "2026-10-20"]
+  // Both providers have the exact same rate on every day: without a dash
+  // pattern one line would sit invisibly on top of the other.
+  const identical = (provider: string) => ({
+    provider,
+    requests: 900,
+    errors: 90,
+    successRate: 0.9,
+    points: days.map((date) => ({
+      date,
+      requests: 300,
+      errors: 30,
+      successRate: 0.9,
+    })),
+  })
+  const payload = {
+    ...base,
+    filters: {
+      range: "all",
+      project: "",
+      brand: "glm",
+      provider: "",
+      model: "",
+    },
+    options: { ...base.options, brands: ["glm"] },
+    successTimeline: days.map((date) => ({
+      date,
+      requests: 600,
+      errors: 60,
+      successRate: 0.9,
+    })),
+    providerTimeline: [identical("pm"), identical("bohe")],
+    brandSummary: [],
+  } as unknown as StatsResponse
+
+  await page.route("**/api/**", async (route) => {
+    await route.fulfill({ json: payload })
+  })
+  await page.setViewportSize({ width: 1440, height: 1200 })
+  await page.goto("/")
+
+  const curves = page.locator(".recharts-line-curve")
+  await expect(curves).toHaveCount(2)
+  const dashes = await curves.evaluateAll((nodes) =>
+    nodes.map((node) => node.getAttribute("stroke-dasharray"))
+  )
+  // Different dash arrays => the two coincident curves remain readable.
+  expect(dashes[0]).not.toBe(dashes[1])
+})

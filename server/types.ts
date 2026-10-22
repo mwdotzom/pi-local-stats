@@ -179,6 +179,18 @@ export interface StatsResponse {
     errors: number
     successRate: number | null
   }>
+  providerTimeline: Array<{
+    provider: string
+    requests: number
+    errors: number
+    successRate: number | null
+    points: Array<{
+      date: string
+      requests: number
+      errors: number
+      successRate: number | null
+    }>
+  }>
   brandSummary: Array<{
     brand: string
     requests: number

@@ -56,11 +56,18 @@ const english = {
   dailyRequests: "Daily requests over the selected period.",
   successRateSignal: "Success rate",
   successRateTimeline: "Overall success rate over time",
+  successRateTimelineByProvider: (brand: string) =>
+    `Success rate over time · ${brand} by provider`,
+  successRateDescriptionByProvider:
+    "One line per provider serving the selected brand. Days without requests are gaps.",
   successRateDescription:
     "All models combined; days without requests are gaps. Per-model rates are on the Models page.",
   successRateByBrand: "Success rate by brand",
   successRateByBrandDescription:
     "One entry per brand: every model and provider serving that brand is merged.",
+  successRateByProvider: "Success rate by provider",
+  providerChartLegendHint:
+    "Distinct colour and dash per provider; dashes keep coincident lines readable.",
   noBrandData: "No brand data in this period",
   brandRowDetail: (
     requests: string,
@@ -325,11 +332,18 @@ const french: Messages = {
   dailyRequests: "Requêtes quotidiennes sur la période sélectionnée.",
   successRateSignal: "Taux de réussite",
   successRateTimeline: "Taux de réussite global dans le temps",
+  successRateTimelineByProvider: (brand: string) =>
+    `Taux de réussite dans le temps · ${brand} par provider`,
+  successRateDescriptionByProvider:
+    "Une courbe par provider de la marque sélectionnée. Les jours sans requête apparaissent comme des trous.",
   successRateDescription:
     "Tous les modèles confondus ; les jours sans requête apparaissent comme des trous. Les taux par modèle sont sur la page Modèles.",
   successRateByBrand: "Taux de réussite par marque",
   successRateByBrandDescription:
     "Une entrée par marque : tous les modèles et providers de cette marque sont fusionnés.",
+  successRateByProvider: "Taux de réussite par provider",
+  providerChartLegendHint:
+    "Couleur et tirets distincts par provider ; les tirets distinguent les courbes superposées.",
   noBrandData: "Aucune donnée de marque sur cette période",
   brandRowDetail: (
     requests: string,

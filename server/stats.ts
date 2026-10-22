@@ -1,5 +1,5 @@
 import type { SqliteDatabase } from "./database.ts"
-import { buildBrandSummary } from "./brand-stats.ts"
+import { buildBrandSummary, buildProviderTimeline } from "./brand-stats.ts"
 import { modelBrand, sortBrands } from "./model-brand.ts"
 import {
   buildModelSuccessTimeline,
@@ -262,6 +262,7 @@ export function getStats(
     successDays,
     modelBrand
   )
+  const providerTimeline = buildProviderTimeline(successRows, successDays)
   const modelSuccess = buildModelSuccessTimeline(
     successRows,
     successDays,
@@ -427,6 +428,7 @@ export function getStats(
     },
     timeseries,
     successTimeline,
+    providerTimeline,
     brandSummary,
     modelSuccess,
     models: modelsSummary,

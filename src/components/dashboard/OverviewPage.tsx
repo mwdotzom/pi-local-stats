@@ -10,6 +10,7 @@ import { Link } from "react-router"
 import { ActivityChart } from "@/components/dashboard/ActivityChart"
 import { MetricCard } from "@/components/dashboard/MetricCard"
 import { ModelChart } from "@/components/dashboard/ModelChart"
+import { ProviderSuccessRateChart } from "@/components/dashboard/ProviderSuccessRateChart"
 import { SuccessRateChart } from "@/components/dashboard/SuccessRateChart.tsx"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -34,6 +35,11 @@ export function OverviewPage({
   search: string
 }) {
   const { messages: t, format } = useI18n()
+
+  // With a brand selected the timeline splits per provider, so the brand figure
+  // does not hide which provider served the traffic.
+  const selectedBrand = data.filters?.brand ?? ""
+  const providerSeries = selectedBrand ? (data.providerTimeline ?? []) : []
 
   return (
     <div className="flex flex-col gap-4">
@@ -102,17 +108,29 @@ export function OverviewPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>{t.successRateTimeline}</CardTitle>
-          <CardDescription>{t.successRateDescription}</CardDescription>
+          <CardTitle>
+            {selectedBrand
+              ? t.successRateTimelineByProvider(selectedBrand)
+              : t.successRateTimeline}
+          </CardTitle>
+          <CardDescription>
+            {selectedBrand
+              ? t.successRateDescriptionByProvider
+              : t.successRateDescription}
+          </CardDescription>
           <CardAction>
             <Badge variant="outline">{rangeLabel}</Badge>
           </CardAction>
         </CardHeader>
         <CardContent>
-          <SuccessRateChart
-            data={data.successTimeline ?? []}
-            fallback={data.models}
-          />
+          {selectedBrand && providerSeries.length > 0 ? (
+            <ProviderSuccessRateChart series={providerSeries} />
+          ) : (
+            <SuccessRateChart
+              data={data.successTimeline ?? []}
+              fallback={data.models}
+            />
+          )}
         </CardContent>
       </Card>
 

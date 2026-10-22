@@ -186,3 +186,62 @@ describe("brand filter", () => {
     expect(stats.models).toHaveLength(0)
   })
 })
+
+describe("provider timeline", () => {
+  it("splits a brand into one series per provider", () => {
+    const stats = getStats(seed(), filters({ brand: "deepseek" }), null)
+    expect(stats.providerTimeline.map((row) => row.provider).sort()).toEqual([
+      "fengwind",
+      "happycoding",
+    ])
+    const happy = stats.providerTimeline.find(
+      (row) => row.provider === "happycoding"
+    )
+    expect(happy).toMatchObject({ requests: 1, errors: 0, successRate: 1 })
+    const fengwind = stats.providerTimeline.find(
+      (row) => row.provider === "fengwind"
+    )
+    expect(fengwind).toMatchObject({ requests: 1, errors: 1, successRate: 0 })
+  })
+
+  it("keeps the per-provider series consistent with the brand total", () => {
+    for (const brand of ["deepseek", "qwen", "glm"]) {
+      const stats = getStats(seed(), filters({ brand }), null)
+      const providerRequests = stats.providerTimeline.reduce(
+        (sum, row) => sum + row.requests,
+        0
+      )
+      const providerErrors = stats.providerTimeline.reduce(
+        (sum, row) => sum + row.errors,
+        0
+      )
+      expect(providerRequests).toBe(stats.overview.requests)
+      expect(providerErrors).toBe(
+        Math.round(stats.overview.requests * stats.overview.errorRate)
+      )
+      const brandRow = stats.brandSummary[0]!
+      expect(brandRow.requests).toBe(providerRequests)
+      expect(brandRow.errors).toBe(providerErrors)
+    }
+  })
+
+  it("aggregates each provider across the brand's models", () => {
+    const database = seed()
+    // Second deepseek model on the same provider must join the same series.
+    database
+      .prepare(
+        `INSERT INTO requests (id, source_key, request_key, file_path, session_id,
+          accounting_session_id, cwd, timestamp, provider, model, input_tokens,
+          cache_read_tokens, total_tokens, cost, is_error, duration_ms)
+         VALUES ('r5', 'r5:key', 'r5:request', '/s.jsonl', 's', 's', '/work/p',
+          '2026-10-05T10:00:00.000Z', 'happycoding', 'deepseek-v4.1', 10, 0, 10, 0, 0, 100)`
+      )
+      .run()
+    const stats = getStats(database, filters({ brand: "deepseek" }), null)
+    const happy = stats.providerTimeline.find(
+      (row) => row.provider === "happycoding"
+    )
+    expect(happy?.requests).toBe(2)
+    expect(stats.providerTimeline).toHaveLength(2)
+  })
+})
