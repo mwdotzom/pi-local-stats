@@ -128,7 +128,7 @@ describe("model history deletion", () => {
     const db = createDatabase(":memory:")
     const sync = new SessionSynchronizer(db, directory, [])
     const stats = () =>
-      getStats(db, { range: "all", project: "", provider: "", model: "" }, null)
+      getStats(db, { range: "all", project: "", brand: "", provider: "", model: "" }, null)
     try {
       await sync.sync()
       expect(stats().overview.totalTokens).toBe(50)

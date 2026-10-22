@@ -38,6 +38,7 @@ const page = {
 const filters = {
   range: "all" as const,
   project: "",
+  brand: "",
   provider: "",
   model: "",
 }

@@ -73,12 +73,13 @@ describe("dashboard navigation", () => {
 
   it("reads validated filters and session options from the URL", () => {
     const search = new URLSearchParams(
-      "range=30d&project=agent&provider=openai&model=gpt&page=3&sort=cost&direction=asc"
+      "range=30d&project=agent&brand=deepseek&provider=openai&model=gpt&page=3&sort=cost&direction=asc"
     )
 
     expect(filtersFromSearch(search)).toEqual({
       range: "30d",
       project: "agent",
+      brand: "deepseek",
       provider: "openai",
       model: "gpt",
     })

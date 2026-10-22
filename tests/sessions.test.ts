@@ -21,6 +21,7 @@ import type {
 const filters: StatsFilters = {
   range: "all",
   project: "",
+  brand: "",
   provider: "",
   model: "",
 }

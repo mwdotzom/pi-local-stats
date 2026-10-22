@@ -3,6 +3,7 @@ export type StatsRange = "today" | "7d" | "30d" | "90d" | "all"
 export interface StatsFilters {
   range: StatsRange
   project: string
+  brand: string
   provider: string
   model: string
 }
@@ -158,6 +159,7 @@ export interface StatsResponse {
   filters: StatsFilters
   options: {
     projects: Array<{ value: string; label: string }>
+    brands: string[]
     providers: string[]
     models: string[]
   }

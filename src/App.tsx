@@ -361,6 +361,16 @@ export function App() {
                 />
                 <FilterSelect
                   className="sm:w-48"
+                  label={t.allBrands}
+                  value={filters.brand}
+                  onChange={(value) => updateFilter("brand", value)}
+                  options={(data?.options.brands ?? []).map((value) => ({
+                    value,
+                    label: value,
+                  }))}
+                />
+                <FilterSelect
+                  className="sm:w-48"
                   label={t.allProviders}
                   value={filters.provider}
                   onChange={(value) => updateFilter("provider", value)}

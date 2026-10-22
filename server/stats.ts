@@ -1,4 +1,5 @@
 import type { SqliteDatabase } from "./database.ts"
+import { sortBrands } from "./model-brand.ts"
 import {
   buildModelSuccessTimeline,
   buildSuccessTimeline,
@@ -80,6 +81,7 @@ export function parseFilters(search: URLSearchParams): StatsFilters {
       ? (requestedRange as StatsRange)
       : "30d",
     project: search.get("project") ?? "",
+    brand: search.get("brand") ?? "",
     provider: search.get("provider") ?? "",
     model: search.get("model") ?? "",
   }
@@ -137,6 +139,10 @@ function where(
   }
   predicates.push(`${timestampColumn} < ?`)
   values.push(tomorrow.toISOString())
+  if (filters.brand) {
+    predicates.push("model_brand(model) = ?")
+    values.push(filters.brand)
+  }
   for (const [key, value] of Object.entries({
     project: filters.project,
     provider: filters.provider,
@@ -205,6 +211,15 @@ export function getStats(
       "SELECT DISTINCT model FROM accounted_usage WHERE model <> 'unknown' ORDER BY model"
     )
     .all() as Array<{ model: string }>
+  // Unfiltered on purpose: the brand menu must stay stable while a brand is
+  // selected, otherwise the chosen entry disappears from its own menu.
+  const brands = sortBrands(
+    db
+      .prepare(
+        "SELECT model_brand(model) AS brand, COALESCE(SUM(request_count), 0) AS requests FROM accounted_usage WHERE model <> 'unknown' GROUP BY brand"
+      )
+      .all() as Array<{ brand: string; requests: number }>
+  )
   const modelPairs = db
     .prepare(
       `SELECT provider, model FROM accounted_usage${requestWhere.clause} AND provider <> 'unknown' AND model <> 'unknown' GROUP BY provider, model ORDER BY provider, model`
@@ -378,6 +393,7 @@ export function getStats(
       })),
       providers: providers.map(({ provider }) => provider),
       models: models.map(({ model }) => model),
+      brands,
     },
     overview: {
       requests: requestsCount,

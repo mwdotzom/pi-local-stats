@@ -25,6 +25,7 @@ const firstSessionPage = {
 const filters = {
   range: "all" as const,
   project: "",
+  brand: "",
   provider: "",
   model: "",
 }
@@ -380,7 +381,7 @@ describe("SessionSynchronizer", () => {
     expect(
       getStats(
         database,
-        { range: "all", project: "", provider: "", model: "" },
+        { range: "all", project: "", brand: "", provider: "", model: "" },
         null
       ).projects[0]?.label
     ).toBe("private-project")
@@ -403,7 +404,7 @@ describe("SessionSynchronizer", () => {
     expect(
       getSessions(
         database,
-        { range: "all", project: "", provider: "", model: "" },
+        { range: "all", project: "", brand: "", provider: "", model: "" },
         firstSessionPage
       ).rows[0]?.agents
     ).toEqual(
@@ -439,7 +440,7 @@ describe("SessionSynchronizer", () => {
     )
     const historicalStats = getStats(
       database,
-      { range: "all", project: "", provider: "", model: "" },
+      { range: "all", project: "", brand: "", provider: "", model: "" },
       null
     )
     expect(historicalStats.options.models).not.toContain("gpt-5.6 terra")
@@ -457,6 +458,7 @@ describe("SessionSynchronizer", () => {
         {
           range: "all",
           project: "",
+          brand: "",
           provider: "",
           model: "gpt-5.6 terra",
         },
@@ -475,6 +477,7 @@ describe("SessionSynchronizer", () => {
         {
           range: "all",
           project: "",
+          brand: "",
           provider: "",
           model: "gpt-5.6-terra",
         },
@@ -484,7 +487,7 @@ describe("SessionSynchronizer", () => {
     expect(
       getStats(
         database,
-        { range: "all", project: "", provider: "", model: "" },
+        { range: "all", project: "", brand: "", provider: "", model: "" },
         null
       ).options.models
     ).not.toContain("gpt-5.6-terra")
@@ -601,7 +604,7 @@ describe("SessionSynchronizer", () => {
 
     const page = getSessions(
       database,
-      { range: "all", project: "", provider: "", model: "" },
+      { range: "all", project: "", brand: "", provider: "", model: "" },
       firstSessionPage
     )
     expect(page.total).toBe(1)
@@ -632,6 +635,7 @@ describe("SessionSynchronizer", () => {
         {
           range: "all",
           project: "",
+          brand: "",
           provider: "",
           model: "gpt-5.6-terra",
         },
@@ -647,21 +651,21 @@ describe("SessionSynchronizer", () => {
     expect(
       getSessions(
         database,
-        { range: "all", project: "", provider: "", model: "stale-model" },
+        { range: "all", project: "", provider: "", brand: "", model: "stale-model" },
         firstSessionPage
       ).total
     ).toBe(0)
     expect(
       getStats(
         database,
-        { range: "all", project: "", provider: "", model: "" },
+        { range: "all", project: "", brand: "", provider: "", model: "" },
         null
       ).options.models
     ).not.toContain("stale-model")
     expect(
       getStats(
         database,
-        { range: "all", project: "", provider: "", model: "" },
+        { range: "all", project: "", brand: "", provider: "", model: "" },
         null
       ).projects[0]?.sessions
     ).toBe(1)
@@ -672,7 +676,7 @@ describe("SessionSynchronizer", () => {
     expect(
       getSessions(
         database,
-        { range: "all", project: "", provider: "", model: "" },
+        { range: "all", project: "", brand: "", provider: "", model: "" },
         firstSessionPage
       ).rows[0]?.agents[0]?.models
     ).toEqual(["gpt-5.6-terra"])
@@ -710,7 +714,7 @@ describe("SessionSynchronizer", () => {
     expect(
       getSessions(
         database,
-        { range: "all", project: "", provider: "", model: "" },
+        { range: "all", project: "", brand: "", provider: "", model: "" },
         firstSessionPage
       ).total
     ).toBe(1)
@@ -1131,7 +1135,7 @@ describe("SessionSynchronizer", () => {
     expect(
       getStats(
         database,
-        { range: "all", project: "", provider: "", model: "" },
+        { range: "all", project: "", brand: "", provider: "", model: "" },
         null
       ).projects
     ).toEqual([expect.objectContaining({ project: repository, sessions: 2 })])
@@ -1157,7 +1161,7 @@ describe("SessionSynchronizer", () => {
     await synchronizer.sync()
     const stats = getStats(
       database,
-      { range: "all", project: "", provider: "", model: "" },
+      { range: "all", project: "", brand: "", provider: "", model: "" },
       null
     )
 
@@ -1170,7 +1174,7 @@ describe("SessionSynchronizer", () => {
     expect(
       getStats(
         database,
-        { range: "all", project: repository, provider: "", model: "" },
+        { range: "all", project: repository, brand: "", provider: "", model: "" },
         null
       ).overview.requests
     ).toBe(12)
@@ -1190,7 +1194,7 @@ describe("SessionSynchronizer", () => {
     expect(
       getSessions(
         database,
-        { range: "all", project: "", provider: "", model: "" },
+        { range: "all", project: "", brand: "", provider: "", model: "" },
         firstSessionPage
       ).rows[0]?.id
     ).toBe("session-fork")
@@ -1200,7 +1204,7 @@ describe("SessionSynchronizer", () => {
     expect(
       getSessions(
         database,
-        { range: "all", project: "", provider: "", model: "" },
+        { range: "all", project: "", brand: "", provider: "", model: "" },
         firstSessionPage
       ).rows
     ).toEqual([
@@ -1243,7 +1247,7 @@ describe("SessionSynchronizer", () => {
     ).toEqual({ count: 3 })
     const initialStats = getStats(
       database,
-      { range: "all", project: "", provider: "", model: "" },
+      { range: "all", project: "", brand: "", provider: "", model: "" },
       null
     )
     expect(initialStats.skills).toEqual([
@@ -1267,7 +1271,7 @@ describe("SessionSynchronizer", () => {
     ).toEqual({ count: 6 })
     const forkedStats = getStats(
       database,
-      { range: "all", project: "", provider: "", model: "" },
+      { range: "all", project: "", brand: "", provider: "", model: "" },
       null
     )
     expect(forkedStats.overview.requests).toBe(3)
@@ -1286,7 +1290,7 @@ describe("SessionSynchronizer", () => {
     expect(
       getStats(
         database,
-        { range: "all", project: "", provider: "", model: "" },
+        { range: "all", project: "", brand: "", provider: "", model: "" },
         null
       ).overview.requests
     ).toBe(6)
@@ -1300,7 +1304,7 @@ describe("SessionSynchronizer", () => {
     expect(
       getStats(
         database,
-        { range: "all", project: "", provider: "", model: "" },
+        { range: "all", project: "", brand: "", provider: "", model: "" },
         null
       ).overview.requests
     ).toBe(6)
@@ -1314,7 +1318,7 @@ describe("SessionSynchronizer", () => {
     expect(
       getStats(
         database,
-        { range: "all", project: "", provider: "", model: "" },
+        { range: "all", project: "", brand: "", provider: "", model: "" },
         null
       ).overview.requests
     ).toBe(3)

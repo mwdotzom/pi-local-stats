@@ -60,7 +60,7 @@ describe("versioned agent compatibility", () => {
 
     const row = getSessions(
       database,
-      { range: "all", project: "", provider: "", model: "" },
+      { range: "all", project: "", brand: "", provider: "", model: "" },
       { page: 1, pageSize: 10, sort: "startedAt", direction: "desc" }
     ).rows[0]!
     expect(row).toMatchObject({
@@ -90,7 +90,7 @@ describe("versioned agent compatibility", () => {
     expect(
       getStats(
         database,
-        { range: "all", project: "", provider: "", model: "" },
+        { range: "all", project: "", brand: "", provider: "", model: "" },
         null
       ).options.models
     ).toEqual(["gpt-fixture", "gpt-parent"])

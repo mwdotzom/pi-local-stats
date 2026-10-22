@@ -26,6 +26,7 @@ const english = {
   last90Days: "Last 90 days",
   allTime: "All time",
   allProjects: "All projects",
+  allBrands: "All brands",
   allProviders: "All providers",
   allModels: "All models",
   indexSummary: (sessions: string, sessionCount: number) =>
@@ -284,6 +285,7 @@ const french: Messages = {
   last90Days: "90 derniers jours",
   allTime: "Depuis le début",
   allProjects: "Tous les projets",
+  allBrands: "Toutes les marques",
   allProviders: "Tous les providers",
   allModels: "Tous les modèles",
   indexSummary: (sessions, sessionCount) =>

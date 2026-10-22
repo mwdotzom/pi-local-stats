@@ -59,6 +59,7 @@ export function dashboardPageFromPath(pathname: string) {
 export const INITIAL_FILTERS: StatsFilters = {
   range: "all",
   project: "",
+  brand: "",
   provider: "",
   model: "",
 }
@@ -85,6 +86,7 @@ const directions = new Set<SortDirection>(["asc", "desc"])
 export function statsRequestSearch(filters: StatsFilters) {
   const search = new URLSearchParams({ range: filters.range })
   if (filters.project) search.set("project", filters.project)
+  if (filters.brand) search.set("brand", filters.brand)
   if (filters.provider) search.set("provider", filters.provider)
   if (filters.model) search.set("model", filters.model)
   return search
@@ -107,6 +109,7 @@ export function filtersFromSearch(search: URLSearchParams): StatsFilters {
   return {
     range: range && ranges.has(range) ? range : INITIAL_FILTERS.range,
     project: search.get("project") ?? "",
+    brand: search.get("brand") ?? "",
     provider: search.get("provider") ?? "",
     model: search.get("model") ?? "",
   }

@@ -4,6 +4,7 @@ import { homedir } from "node:os"
 import { dirname, join } from "node:path"
 
 import { MODEL_HISTORY_SCHEMA_SQL } from "./model-history.ts"
+import { modelBrand } from "./model-brand.ts"
 
 export type SqliteDatabase = Database.Database
 
@@ -685,5 +686,10 @@ export function createDatabase(
 
   db.pragma("journal_mode = WAL")
   db.pragma("foreign_keys = ON")
+  // Brand is derived from the model id, not stored, so the filter stays correct
+  // for history indexed before this feature existed and needs no migration.
+  db.function("model_brand", { deterministic: true }, (model: unknown) =>
+    modelBrand(typeof model === "string" ? model : "")
+  )
   return db
 }

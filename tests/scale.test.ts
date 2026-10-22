@@ -14,6 +14,7 @@ const temporaryDirectories: string[] = []
 const filters = {
   range: "all" as const,
   project: "",
+  brand: "",
   provider: "",
   model: "",
 }

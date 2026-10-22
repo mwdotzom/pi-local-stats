@@ -1175,7 +1175,7 @@ test("session click, browser history and return preserve list filters and sortin
     .getByRole("button", { name: "Back to sessions", exact: true })
     .click()
   await expect(page).toHaveURL(listUrl)
-  await expect(page.getByRole("combobox")).toHaveCount(4)
+  await expect(page.getByRole("combobox")).toHaveCount(5)
 })
 
 test("refresh keeps the selected event visible while its request is pending", async ({
@@ -1248,5 +1248,5 @@ test("empty and unavailable sessions explain the state and allow returning", asy
   await page
     .getByRole("button", { name: "Back to sessions", exact: true })
     .click()
-  await expect(page.getByRole("combobox")).toHaveCount(4)
+  await expect(page.getByRole("combobox")).toHaveCount(5)
 })

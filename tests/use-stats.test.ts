@@ -88,7 +88,13 @@ vi.mock("@/lib/i18n", () => ({
 import { useStats } from "../src/hooks/use-stats.ts"
 import type { StatsFilters } from "../src/types.ts"
 
-const filters = { range: "all" as const, project: "", provider: "", model: "" }
+const filters = {
+  range: "all" as const,
+  project: "",
+  brand: "",
+  provider: "",
+  model: "",
+}
 const sessionPage = {
   page: 1,
   pageSize: 20,
