@@ -58,6 +58,16 @@ const english = {
   successRateTimeline: "Overall success rate over time",
   successRateDescription:
     "All models combined; days without requests are gaps. Per-model rates are on the Models page.",
+  successRateByBrand: "Success rate by brand",
+  successRateByBrandDescription:
+    "One entry per brand: every model and provider serving that brand is merged.",
+  noBrandData: "No brand data in this period",
+  brandRowDetail: (
+    requests: string,
+    errors: string,
+    models: string,
+    providers: string
+  ) => `${requests} req · ${errors} err · ${models} models · ${providers} providers`,
   successRateByModel: "Success rate by model",
   successRateByModelDescription:
     "Success rate per model over the selected period.",
@@ -317,6 +327,16 @@ const french: Messages = {
   successRateTimeline: "Taux de réussite global dans le temps",
   successRateDescription:
     "Tous les modèles confondus ; les jours sans requête apparaissent comme des trous. Les taux par modèle sont sur la page Modèles.",
+  successRateByBrand: "Taux de réussite par marque",
+  successRateByBrandDescription:
+    "Une entrée par marque : tous les modèles et providers de cette marque sont fusionnés.",
+  noBrandData: "Aucune donnée de marque sur cette période",
+  brandRowDetail: (
+    requests: string,
+    errors: string,
+    models: string,
+    providers: string
+  ) => `${requests} req · ${errors} err · ${models} modèles · ${providers} providers`,
   successRateByModel: "Taux de réussite par modèle",
   successRateByModelDescription:
     "Taux de réussite par modèle sur la période sélectionnée.",

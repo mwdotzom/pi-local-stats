@@ -111,6 +111,49 @@ describe("brand filter", () => {
     ).toEqual([0, 1])
   })
 
+  it("merges every provider and model of a brand into one entry", () => {
+    const deepseek = getStats(seed(), filters({ brand: "deepseek" }), null)
+    expect(deepseek.brandSummary).toHaveLength(1)
+    const [brand] = deepseek.brandSummary
+    expect(brand).toMatchObject({
+      brand: "deepseek",
+      requests: 2,
+      errors: 1,
+      successRate: 0.5,
+      providerCount: 2,
+      modelCount: 1,
+    })
+    expect(
+      brand!.points.reduce((sum, point) => sum + point.requests, 0)
+    ).toBe(2)
+  })
+
+  it("lists one entry per brand with no duplicates", () => {
+    const stats = getStats(seed(), filters(), null)
+    const brands = stats.brandSummary.map((row) => row.brand)
+    expect(brands).toHaveLength(new Set(brands).size)
+    expect(brands.sort()).toEqual(["deepseek", "glm", "qwen"])
+    const total = stats.brandSummary.reduce((sum, row) => sum + row.requests, 0)
+    expect(total).toBe(stats.overview.requests)
+  })
+
+  it("ranks brands by success rate and keeps the totals consistent", () => {
+    const stats = getStats(seed(), filters(), null)
+    // deepseek 2 req / 1 err = 50%; glm and qwen are 1/1 = 0% and tie on
+    // requests, so the stable sort keeps their input order.
+    expect(stats.brandSummary.map((row) => row.brand)).toEqual([
+      "deepseek",
+      "glm",
+      "qwen",
+    ])
+    for (const row of stats.brandSummary) {
+      expect(row.requests).toBeGreaterThan(0)
+      expect(row.successRate).toBe(
+        1 - row.errors / row.requests
+      )
+    }
+  })
+
   it("groups the same model id across providers under one brand", () => {
     const stats = getStats(seed(), filters({ brand: "deepseek" }), null)
     expect(stats.providers.map((row) => row.provider).sort()).toEqual([

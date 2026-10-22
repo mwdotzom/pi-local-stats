@@ -103,3 +103,96 @@ test("brand selector filters the dashboard", async ({ page }) => {
   await expect(page).not.toHaveURL(/brand=/)
   expect(errors).toEqual([])
 })
+
+test("brand choice reads as one entry covering all providers", async ({
+  page,
+}) => {
+  const point = (date: string, requests: number, errors: number) => ({
+    date,
+    requests,
+    errors,
+    successRate: requests > 0 ? 1 - errors / requests : null,
+  })
+  const brand = (
+    name: string,
+    requests: number,
+    errors: number,
+    providerCount: number,
+    modelCount: number
+  ) => ({
+    brand: name,
+    requests,
+    errors,
+    successRate: 1 - errors / requests,
+    tokens: 1_000,
+    cacheReadTokens: 500,
+    cacheRate: 0.5,
+    cost: 0,
+    providerCount,
+    modelCount,
+    points: [
+      point("2026-10-19", requests, errors),
+      point("2026-10-20", requests, errors),
+    ],
+  })
+  const withBrands = {
+    ...base,
+    filters: { range: "all", project: "", brand: "deepseek", provider: "", model: "" },
+    options: { ...base.options, brands: ["deepseek", "glm"] },
+    overview: { ...base.overview, requests: 40_248, errorRate: 0.1092 },
+    brandSummary: [brand("deepseek", 40_248, 4_397, 10, 8)],
+    modelSuccess: [
+      {
+        provider: "happycoding",
+        model: "deepseek-v4.1-flash",
+        requests: 18_030,
+        errors: 274,
+        successRate: 0.9848,
+        points: [
+          point("2026-10-19", 9_000, 137),
+          point("2026-10-20", 18_030, 274),
+        ],
+      },
+      {
+        provider: "fengwind",
+        model: "deepseek-v4.1-flash",
+        requests: 14_852,
+        errors: 3_750,
+        successRate: 0.7475,
+        points: [
+          point("2026-10-19", 7_400, 1_870),
+          point("2026-10-20", 14_852, 3_750),
+        ],
+      },
+    ],
+    models: [
+      {
+        model: "deepseek-v4.1-flash",
+        provider: "happycoding",
+        requests: 18_030,
+        tokens: 1_000,
+        cost: 0,
+        errors: 274,
+        cacheRate: 0.9,
+      },
+    ],
+  } as unknown as StatsResponse
+
+  await page.route("**/api/**", async (route) => {
+    await route.fulfill({ json: withBrands })
+  })
+  await page.setViewportSize({ width: 1440, height: 1400 })
+  await page.goto("/models")
+
+  const byBrand = page.getByLabel("Success rate by brand")
+  // One entry for the whole brand, not one per provider or per model id.
+  await expect(byBrand.locator("li")).toHaveCount(1)
+  await expect(byBrand).toContainText("deepseek")
+  await expect(byBrand).toContainText("40,248 req")
+  await expect(byBrand).toContainText("10 providers")
+  await expect(byBrand).toContainText("8 models")
+
+  // The success chart shows the brand as a single series even though two
+  // providers serve it.
+  await expect(page.locator(".recharts-line-curve")).toHaveCount(1)
+})

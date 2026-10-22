@@ -55,6 +55,21 @@ describe("model brand derivation", () => {
     expect(normaliseModelId("glm-5.3(200k)")).toBe("glm-5.3")
   })
 
+  it("sums duplicate rows so each brand appears once", () => {
+    // Real data feeds one row per (model, provider) pair; the menu must still
+    // offer a single entry per brand.
+    const rows = [
+      { brand: "deepseek", requests: 10 },
+      { brand: "deepseek", requests: 20 },
+      { brand: "deepseek", requests: 5 },
+      { brand: "glm", requests: 12 },
+      { brand: "qwen", requests: 30 },
+    ]
+    // deepseek: 10+20+5 = 35, qwen: 30, glm: 12
+    expect(sortBrands(rows)).toEqual(["deepseek", "qwen", "glm"])
+    expect(new Set(sortBrands(rows)).size).toBe(sortBrands(rows).length)
+  })
+
   it("orders brands by usage and hides unknown", () => {
     expect(
       sortBrands([

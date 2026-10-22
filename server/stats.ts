@@ -1,5 +1,6 @@
 import type { SqliteDatabase } from "./database.ts"
-import { sortBrands } from "./model-brand.ts"
+import { buildBrandSummary } from "./brand-stats.ts"
+import { modelBrand, sortBrands } from "./model-brand.ts"
 import {
   buildModelSuccessTimeline,
   buildSuccessTimeline,
@@ -241,6 +242,26 @@ export function getStats(
   const firstSuccessDate = successRows[0]?.date
   const successDays = successDayKeys(filters.range, firstSuccessDate)
   const successTimeline = buildSuccessTimeline(successRows, successDays)
+  const brandTotals = db
+    .prepare(
+      `SELECT model_brand(model) AS brand, COALESCE(SUM(request_count), 0) AS requests, COALESCE(SUM(is_error), 0) AS errors, COALESCE(SUM(total_tokens), 0) AS tokens, COALESCE(SUM(cache_read_tokens), 0) AS cache_read, COALESCE(SUM(cost), 0) AS cost, COUNT(DISTINCT provider) AS providers, COUNT(DISTINCT model) AS models FROM accounted_usage${requestWhere.clause} AND model <> 'unknown' GROUP BY brand`
+    )
+    .all(...requestWhere.values) as Array<Record<string, unknown>>
+  const brandSummary = buildBrandSummary(
+    brandTotals.map((row) => ({
+      brand: String(row.brand),
+      requests: numeric(row.requests),
+      errors: numeric(row.errors),
+      tokens: numeric(row.tokens),
+      cache_read: numeric(row.cache_read),
+      cost: numeric(row.cost),
+      providers: numeric(row.providers),
+      models: numeric(row.models),
+    })),
+    successRows,
+    successDays,
+    modelBrand
+  )
   const modelSuccess = buildModelSuccessTimeline(
     successRows,
     successDays,
@@ -406,6 +427,7 @@ export function getStats(
     },
     timeseries,
     successTimeline,
+    brandSummary,
     modelSuccess,
     models: modelsSummary,
     hiddenModels,

@@ -179,6 +179,24 @@ export interface StatsResponse {
     errors: number
     successRate: number | null
   }>
+  brandSummary: Array<{
+    brand: string
+    requests: number
+    errors: number
+    successRate: number | null
+    tokens: number
+    cacheReadTokens: number
+    cacheRate: number
+    cost: number
+    providerCount: number
+    modelCount: number
+    points: Array<{
+      date: string
+      requests: number
+      errors: number
+      successRate: number | null
+    }>
+  }>
   modelSuccess: Array<{
     provider: string
     model: string

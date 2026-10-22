@@ -65,15 +65,25 @@ export function modelBrand(model: string): string {
   return leadingToken && leadingToken !== "unknown" ? leadingToken : "unknown"
 }
 
-/** Distinct brands, most used first, for the filter menu. */
+/**
+ * Distinct brands, most used first, for the filter menu.
+ *
+ * Duplicate entries are summed rather than repeated: callers may feed one row
+ * per (model, provider) pair, and the menu must still offer each brand exactly
+ * once so a single choice covers every provider serving that brand.
+ */
 export function sortBrands(
   counts: Array<{ brand: string; requests: number }>
 ): string[] {
-  return counts
-    .filter((entry) => entry.brand && entry.brand !== "unknown")
+  const totals = new Map<string, number>()
+  for (const entry of counts) {
+    if (!entry.brand || entry.brand === "unknown") continue
+    totals.set(entry.brand, (totals.get(entry.brand) ?? 0) + entry.requests)
+  }
+  return [...totals]
     .toSorted(
-      (left, right) =>
-        right.requests - left.requests || left.brand.localeCompare(right.brand)
+      ([leftBrand, leftRequests], [rightBrand, rightRequests]) =>
+        rightRequests - leftRequests || leftBrand.localeCompare(rightBrand)
     )
-    .map((entry) => entry.brand)
+    .map(([brand]) => brand)
 }
