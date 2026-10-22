@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Rebuild the dashboard client when its sources are staged, then stage dist/client.
+# Skipped when SKIP_DIST_BUILD=1 (for docs-only or server-only commits).
+set -euo pipefail
+[ "${SKIP_DIST_BUILD:-0}" = "1" ] && exit 0
+
+changed=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(src/|index\.html|vite\.config\.ts|package\.json|tsconfig.*\.json)' || true)
+[ -z "$changed" ] && exit 0
+
+echo "pre-commit: rebuilding dist/client for staged client changes"
+npm run build >/dev/null
+git add -A dist/client
+echo "pre-commit: dist/client staged"
