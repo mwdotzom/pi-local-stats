@@ -44,6 +44,7 @@ import {
   withSessionTrace,
 } from "@/lib/dashboard-url"
 import { catalogs, resolveLanguage, useI18n } from "@/lib/i18n"
+import { brandFilterApplied, brandMenu } from "@/lib/brands"
 import type {
   SessionSortKey,
   SortDirection,
@@ -364,7 +365,7 @@ export function App() {
                   label={t.allBrands}
                   value={filters.brand}
                   onChange={(value) => updateFilter("brand", value)}
-                  options={(data?.options.brands ?? []).map((value) => ({
+                  options={brandMenu(data).map((value) => ({
                     value,
                     label: value,
                   }))}
@@ -397,6 +398,15 @@ export function App() {
                       )
                     : t.readingIndex}
                 </span>
+                {filters.brand && !brandFilterApplied(data, filters.brand) ? (
+                  <p
+                    role="status"
+                    className="flex w-full items-center gap-2 rounded-md border border-dashed px-2 py-1.5 text-xs text-muted-foreground"
+                  >
+                    <AlertTriangleIcon className="size-3.5 shrink-0" />
+                    {t.brandFilterNeedsRestart}
+                  </p>
+                ) : null}
               </CardContent>
             </Card>
           ) : null}

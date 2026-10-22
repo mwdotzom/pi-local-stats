@@ -27,6 +27,8 @@ const english = {
   allTime: "All time",
   allProjects: "All projects",
   allBrands: "All brands",
+  brandFilterNeedsRestart:
+    "This dashboard server does not apply the brand filter yet, so the figures below cover all brands. Restart it (/reload, then /stats) to filter by brand.",
   allProviders: "All providers",
   allModels: "All models",
   indexSummary: (sessions: string, sessionCount: number) =>
@@ -286,6 +288,8 @@ const french: Messages = {
   allTime: "Depuis le début",
   allProjects: "Tous les projets",
   allBrands: "Toutes les marques",
+  brandFilterNeedsRestart:
+    "Ce serveur du tableau de bord n’applique pas encore le filtre par marque : les chiffres ci-dessous couvrent toutes les marques. Redémarrez-le (/reload, puis /stats) pour filtrer par marque.",
   allProviders: "Tous les providers",
   allModels: "Tous les modèles",
   indexSummary: (sessions, sessionCount) =>
