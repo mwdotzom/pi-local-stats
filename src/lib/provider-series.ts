@@ -18,6 +18,7 @@ export const PROVIDER_SERIES_COLORS = [
   "#14b8a6",
 ]
 
+// Dash patterns cycle independently of colour so coincident curves stay readable.
 export const PROVIDER_SERIES_DASHES = ["", "6 3", "2 3", "10 3 2 3"]
 
 export function providerSeriesStyle(index: number) {
