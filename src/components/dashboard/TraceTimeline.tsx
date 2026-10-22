@@ -1,0 +1,629 @@
+import { useState, type Ref } from "react"
+import { ActivityIcon, BotIcon, ChevronRightIcon } from "lucide-react"
+
+import { TraceOffscreenActivity } from "@/components/dashboard/TraceOffscreenActivity"
+import { TraceActivitySummary } from "@/components/dashboard/TraceActivitySummary"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
+import {
+  ACTIVITY_BUCKET_COUNT,
+  buildActivityBuckets,
+  groupTraceLanes,
+  layoutAgentGroup,
+  laneAccountedCost,
+  laneCostUnknown,
+  laneTokens,
+  type TraceLane,
+  type TraceLaneGroup,
+  type TraceScale,
+} from "@/lib/session-trace"
+import type { SessionTraceSpan } from "@/types"
+
+const DENSE_EVENT_THRESHOLD = 120
+
+function spanStyle(span: SessionTraceSpan, scale: TraceScale) {
+  if (!span.startedAt) return null
+  const start = Date.parse(span.startedAt)
+  if (!Number.isFinite(start)) return null
+  const left = scale.position(start)
+  const right = scale.position(start + Math.max(0, span.durationMs ?? 0))
+  return {
+    left: `min(${left}%, calc(100% - 6px))`,
+    width: `max(6px, ${Math.max(0, right - left)}%)`,
+  }
+}
+
+function AgentGroupRow({
+  group,
+  sessionTokens,
+  sessionCost,
+  costCoverageComplete,
+  expanded,
+  onToggle,
+  scale,
+  selected,
+  highlightedIds,
+  onInspectEvents,
+}: {
+  group: TraceLaneGroup
+  sessionTokens: number
+  sessionCost: number
+  costCoverageComplete: boolean
+  expanded: boolean
+  onToggle: () => void
+  scale: TraceScale
+  selected: SessionTraceSpan | null
+  highlightedIds: Set<string>
+  onInspectEvents: (key: string, ids: string[]) => void
+}) {
+  const { messages: t, format } = useI18n()
+  const marks = layoutAgentGroup(group.lanes, scale)
+  const knownTokens = group.lanes.map(laneTokens)
+  const missingUsage = knownTokens.filter((tokens) => tokens === null).length
+  const tokens = knownTokens.reduce<number>(
+    (sum, tokens) => sum + (tokens ?? 0),
+    0
+  )
+  const tokenShare =
+    missingUsage < group.lanes.length && sessionTokens > 0
+      ? format.percent(tokens / sessionTokens)
+      : null
+  const failed = group.lanes.filter(
+    (lane) => lane.agent!.status === "failed"
+  ).length
+  const cost = group.lanes.reduce(
+    (total, lane) => total + laneAccountedCost(lane),
+    0
+  )
+  const share =
+    costCoverageComplete && sessionCost > 0
+      ? format.percent(cost / sessionCost)
+      : null
+  const costUnknown = group.lanes.some(laneCostUnknown)
+  const toggleLabel = t.traceAgentGroup(
+    group.label,
+    group.lanes.length,
+    expanded
+  )
+  return (
+    <div
+      data-agent-group={group.label}
+      className="grid min-h-14 grid-cols-[12rem_minmax(0,1fr)] border-b last:border-b-0"
+    >
+      <div className="sticky left-0 z-20 flex min-w-0 flex-col justify-center gap-1 bg-card px-3 py-2">
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-label={toggleLabel}
+          title={toggleLabel}
+          onClick={onToggle}
+          className="flex min-w-0 cursor-pointer items-center gap-1.5 text-left text-xs font-medium hover:text-primary"
+        >
+          <ChevronRightIcon
+            className={cn("size-3.5 shrink-0", expanded && "rotate-90")}
+          />
+          <BotIcon className="size-3.5 shrink-0 text-primary" />
+          <span className="truncate">{group.label}</span>
+          <span className="shrink-0 text-muted-foreground">
+            × {group.lanes.length}
+          </span>
+        </button>
+        <TraceActivitySummary
+          lanes={group.lanes}
+          label={group.label}
+          onInspectEvents={onInspectEvents}
+        />
+        <span
+          className="font-mono text-[0.625rem] text-muted-foreground tabular-nums"
+          title={
+            [
+              tokenShare ? t.traceTokenShare : null,
+              costUnknown ? t.traceLaneCostUnknown(group.label) : null,
+            ]
+              .filter(Boolean)
+              .join(" ") || undefined
+          }
+        >
+          {missingUsage === group.lanes.length
+            ? t.agentUsageUnavailable
+            : t.tokenCount(format.compact(tokens), tokens)}
+          {tokenShare ? ` · ${tokenShare}` : ""}
+        </span>
+        {cost > 0 ? (
+          <span
+            className="font-mono text-[0.625rem] text-muted-foreground tabular-nums"
+            title={t.traceLaneCost(group.label, format.currency(cost), share)}
+          >
+            {format.currency(cost)}
+            {share ? ` · ${share}` : ""}
+          </span>
+        ) : null}
+        {missingUsage > 0 && missingUsage < group.lanes.length ? (
+          <span className="text-[0.625rem] text-muted-foreground">
+            {t.traceMissingAgentUsage(missingUsage)}
+          </span>
+        ) : null}
+        {failed > 0 ? (
+          <span className="text-[0.625rem] text-destructive">
+            {t.traceFailedAgents(failed)}
+          </span>
+        ) : null}
+        <TraceOffscreenActivity scale={scale} />
+      </div>
+      <div
+        className="relative min-h-14 border-l bg-[linear-gradient(to_right,color-mix(in_oklch,var(--border)_40%,transparent)_1px,transparent_1px)] bg-[length:25%_100%]"
+        style={{
+          minHeight: `${Math.max(56, (Math.max(...marks.map((mark) => mark.row)) + 1) * 24 + 8)}px`,
+        }}
+      >
+        {marks.map(({ lane, row, timed }) => {
+          const agent = lane.agent!
+          const isSelected =
+            selected?.id === agent.id ||
+            lane.events.some((span) => span.id === selected?.id)
+          const highlighted =
+            highlightedIds.has(agent.id) ||
+            lane.events.some((span) => highlightedIds.has(span.id))
+          const tokens = laneTokens(lane)
+          const title = `${t.agent} · ${agent.label} · ${timed ? format.duration(agent.durationMs!) : t.timingUnavailable}${tokens === null ? "" : ` · ${t.tokenCount(format.compact(tokens), tokens)}`}${agent.isError ? ` · ${t.traceError}` : ""}`
+          return (
+            <button
+              key={agent.id}
+              type="button"
+              data-agent-id={agent.id}
+              data-trace-mark=""
+              aria-label={title}
+              title={title}
+              aria-pressed={isSelected}
+              className={cn(
+                "absolute h-5 cursor-pointer rounded-sm border border-primary/60 bg-primary/10 hover:bg-primary/20 focus-visible:ring-2 focus-visible:ring-ring",
+                !timed &&
+                  "left-2 border-dashed px-2 text-xs text-muted-foreground",
+                agent.isError && "border-destructive bg-destructive/10",
+                highlightedIds.size > 0 && !highlighted && "opacity-20",
+                highlighted && "bg-primary/25",
+                isSelected && "ring-2 ring-ring ring-inset"
+              )}
+              style={{
+                ...(timed ? spanStyle(agent, scale) : {}),
+                top: `${4 + row * 24}px`,
+              }}
+              onClick={() => onInspectEvents(`event:${agent.id}`, [agent.id])}
+            >
+              {!timed ? t.timingUnavailable : null}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+export function TraceTimeline({
+  ref,
+  visibleLanes,
+  scale,
+  selected,
+  highlightedIds,
+  sessionCost,
+  costCoverageComplete,
+  onInspectEvents,
+}: {
+  ref: Ref<HTMLDivElement>
+  visibleLanes: TraceLane[]
+  scale: TraceScale
+  selected: SessionTraceSpan | null
+  highlightedIds: Set<string>
+  sessionCost: number
+  costCoverageComplete: boolean
+  onInspectEvents: (key: string, ids: string[]) => void
+}) {
+  const { messages: t, format } = useI18n()
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+    () => new Set()
+  )
+  const sessionTokens = visibleLanes.reduce(
+    (total, lane) => total + (laneTokens(lane) ?? 0),
+    0
+  )
+  const rows = groupTraceLanes(visibleLanes).flatMap((row) =>
+    "lanes" in row && expandedGroups.has(row.id) ? [row, ...row.lanes] : [row]
+  )
+  const selectedId = selected?.id ?? null
+  const hasHighlights = highlightedIds.size > 0
+  const scaleStart = scale.timeAt(0)
+  const ticks = Array.from({ length: 5 }, (_, index) => ({
+    left: index * 25,
+    label:
+      index === 0
+        ? "0 s"
+        : format.duration(scale.timeAt(index / 4) - scaleStart),
+  }))
+  const kindLabel = (span: SessionTraceSpan) =>
+    span.kind === "agent"
+      ? t.agent
+      : span.kind === "request"
+        ? t.traceRequest
+        : t.traceTool
+
+  return (
+    <div
+      ref={ref}
+      data-trace-viewport=""
+      className="w-full overflow-x-auto border-t"
+      role="region"
+      aria-label={t.traceScrollableTimeline}
+      tabIndex={0}
+    >
+      <div className="min-w-[64rem]">
+        <div className="grid grid-cols-[12rem_minmax(0,1fr)] border-b bg-muted/40 text-xs text-muted-foreground">
+          <div className="sticky left-0 z-20 bg-muted px-4 py-3">
+            {t.evidenceTimeline}
+          </div>
+          <div className="relative h-10 border-l">
+            {scale.breaks.map((position) => (
+              <span
+                key={position}
+                title={t.traceGap}
+                aria-label={t.traceGap}
+                className="absolute bottom-0 w-4 text-center text-xs text-muted-foreground"
+                style={{
+                  left: `clamp(0.5rem, ${position}%, calc(100% - 0.5rem))`,
+                  transform: "translateX(-50%)",
+                }}
+              >
+                //
+              </span>
+            ))}
+            {ticks.map((tick, index) => (
+              <span
+                key={tick.left}
+                className="absolute top-0 flex h-full flex-col items-center whitespace-nowrap"
+                style={{
+                  left: `${tick.left}%`,
+                  transform: `translateX(${index === 0 ? "0" : index === 4 ? "-100%" : "-50%"})`,
+                }}
+              >
+                <span className="h-2 border-l" />
+                <span className="px-1 font-mono tabular-nums">
+                  {tick.label}
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+        {rows.map((lane) => {
+          if ("lanes" in lane)
+            return (
+              <AgentGroupRow
+                key={lane.id}
+                group={lane}
+                sessionTokens={sessionTokens}
+                sessionCost={sessionCost}
+                costCoverageComplete={costCoverageComplete}
+                expanded={expandedGroups.has(lane.id)}
+                onToggle={() =>
+                  setExpandedGroups((current) => {
+                    const next = new Set(current)
+                    if (next.has(lane.id)) next.delete(lane.id)
+                    else next.add(lane.id)
+                    return next
+                  })
+                }
+                scale={scale}
+                selected={selected}
+                highlightedIds={highlightedIds}
+                onInspectEvents={onInspectEvents}
+              />
+            )
+          const dense =
+            !lane.agent && lane.events.length > DENSE_EVENT_THRESHOLD
+          const buckets = dense ? buildActivityBuckets(lane.events, scale) : []
+          const maxBucketSize = Math.max(
+            1,
+            ...buckets.map((bucket) => bucket.spans.length)
+          )
+          const untimedEvents = lane.agent
+            ? []
+            : lane.events.filter((span) => !spanStyle(span, scale))
+          const tokens = laneTokens(lane)
+          const tokenShare =
+            tokens !== null && sessionTokens > 0
+              ? format.percent(tokens / sessionTokens)
+              : null
+          const laneCost = laneAccountedCost(lane)
+          const costAvailable =
+            !laneCostUnknown(lane) &&
+            (lane.agent?.cost != null ||
+              lane.events.some(
+                (span) =>
+                  span.kind === "request" &&
+                  span.includedInSessionTotal === true &&
+                  span.cost !== null
+              ))
+          const laneShare =
+            costCoverageComplete && sessionCost > 0
+              ? format.percent(laneCost / sessionCost)
+              : null
+          const laneName = lane.agent?.label ?? t.mainSession
+          const laneSelected =
+            selected?.id === lane.agent?.id ||
+            lane.events.some((span) => span.id === selectedId)
+          const laneHighlighted =
+            highlightedIds.has(lane.id) ||
+            lane.events.some((span) => highlightedIds.has(span.id))
+          const agentStyle =
+            lane.agent && lane.agent.durationMs !== null
+              ? spanStyle(lane.agent, scale)
+              : null
+          const inspectLane = () =>
+            onInspectEvents(
+              `lane:${lane.id}`,
+              lane.events.length
+                ? lane.events.map((span) => span.id)
+                : [lane.agent!.id]
+            )
+          const laneTitle = lane.agent
+            ? `${t.agent} · ${laneName} · ${
+                lane.agent.durationMs === null
+                  ? t.timingUnavailable
+                  : format.duration(lane.agent.durationMs)
+              }`
+            : laneName
+          return (
+            <div
+              key={lane.id}
+              data-lane-id={lane.id}
+              className="grid min-h-14 grid-cols-[12rem_minmax(0,1fr)] border-b last:border-b-0"
+            >
+              <div
+                className="sticky left-0 z-20 flex min-w-0 flex-col justify-center gap-0.5 bg-card px-3 py-1.5"
+                style={{ paddingLeft: `${16 + lane.depth * 16}px` }}
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  {lane.agent ? (
+                    <button
+                      type="button"
+                      aria-label={laneTitle}
+                      aria-pressed={laneSelected}
+                      title={laneTitle}
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
+                      onClick={() =>
+                        onInspectEvents(`event:${lane.agent!.id}`, [
+                          lane.agent!.id,
+                        ])
+                      }
+                    >
+                      <BotIcon className="size-3.5 shrink-0 text-primary" />
+                      <span className="truncate text-xs font-medium">
+                        {laneName}
+                      </span>
+                    </button>
+                  ) : (
+                    <>
+                      <ActivityIcon className="size-3.5 shrink-0 text-primary" />
+                      <span className="truncate text-xs font-medium">
+                        {laneName}
+                      </span>
+                    </>
+                  )}
+                  {lane.agent?.status === "failed" ? (
+                    <Badge
+                      variant="outline"
+                      className="shrink-0 border-destructive/60 bg-destructive/10 px-1 text-[0.625rem] text-destructive"
+                    >
+                      {t.traceAgentFailed}
+                    </Badge>
+                  ) : null}
+                </div>
+                <TraceActivitySummary
+                  lanes={[lane]}
+                  label={laneName}
+                  onInspectEvents={onInspectEvents}
+                />
+                <span
+                  className="font-mono text-[0.625rem] text-muted-foreground tabular-nums"
+                  title={tokenShare ? t.traceTokenShare : undefined}
+                >
+                  {tokens === null
+                    ? t.agentTokensUnavailable
+                    : t.tokenCount(format.compact(tokens), tokens)}
+                  {tokenShare ? ` · ${tokenShare}` : ""}
+                </span>
+                {lane.agent || laneCost > 0 ? (
+                  <span
+                    className="font-mono text-[0.625rem] text-muted-foreground tabular-nums"
+                    title={
+                      costAvailable
+                        ? t.traceLaneCost(
+                            laneName,
+                            format.currency(laneCost),
+                            laneShare
+                          )
+                        : t.agentCostUnavailable
+                    }
+                  >
+                    {costAvailable ? (
+                      <>
+                        {format.currency(laneCost)}
+                        {laneShare ? ` · ${laneShare}` : ""}
+                      </>
+                    ) : (
+                      t.agentCostUnavailable
+                    )}
+                  </span>
+                ) : null}
+                <TraceOffscreenActivity scale={scale} />
+              </div>
+              <div className="relative h-full min-h-14 border-l bg-[linear-gradient(to_right,color-mix(in_oklch,var(--border)_40%,transparent)_1px,transparent_1px)] bg-[length:25%_100%]">
+                {lane.agent ? (
+                  <button
+                    type="button"
+                    aria-label={
+                      lane.events.length
+                        ? `${laneTitle} · ${t.traceLaneEvents(laneName, lane.events.length)}`
+                        : laneTitle
+                    }
+                    aria-pressed={laneSelected}
+                    title={laneTitle}
+                    className={cn(
+                      "absolute top-1 h-12 cursor-pointer rounded-sm border border-primary/60 bg-primary/10 hover:bg-primary/20",
+                      !agentStyle &&
+                        "left-2 border-dashed px-2 text-xs text-muted-foreground",
+                      hasHighlights && !laneHighlighted && "opacity-20",
+                      laneHighlighted && "border-primary bg-primary/25",
+                      laneSelected && "ring-2 ring-ring ring-inset"
+                    )}
+                    data-trace-mark=""
+                    style={agentStyle ?? undefined}
+                    onClick={inspectLane}
+                  >
+                    {!agentStyle ? t.timingUnavailable : null}
+                  </button>
+                ) : (
+                  <>
+                    {dense ? (
+                      <>
+                        {buckets.map((bucket) => {
+                          const isSelected = bucket.spans.some(
+                            (span) => span.id === selected?.id
+                          )
+                          const isHighlighted = bucket.spans.some((span) =>
+                            highlightedIds.has(span.id)
+                          )
+                          const title = t.activityBucket(
+                            bucket.requests,
+                            bucket.tools,
+                            bucket.errors
+                          )
+                          return (
+                            <button
+                              key={bucket.index}
+                              data-trace-mark=""
+                              type="button"
+                              aria-label={title}
+                              aria-pressed={isSelected}
+                              title={title}
+                              className={cn(
+                                "absolute inset-y-1 z-10 cursor-pointer overflow-hidden rounded-sm border border-border/70 bg-card/40 hover:z-20 hover:border-primary focus-visible:z-30",
+                                bucket.errors > 0 && "border-destructive",
+                                hasHighlights && !isHighlighted && "opacity-20",
+                                isHighlighted &&
+                                  "ring-2 ring-primary ring-inset",
+                                isSelected && "ring-2 ring-ring ring-inset"
+                              )}
+                              style={{
+                                left: `${(bucket.index / ACTIVITY_BUCKET_COUNT) * 100}%`,
+                                width: `${100 / ACTIVITY_BUCKET_COUNT}%`,
+                              }}
+                              onClick={() =>
+                                onInspectEvents(
+                                  `bucket:${lane.id}:${bucket.index}`,
+                                  bucket.spans.map((span) => span.id)
+                                )
+                              }
+                            >
+                              {bucket.requests ? (
+                                <span
+                                  className="absolute inset-x-px top-px h-[calc(50%-2px)] bg-[var(--chart-3)]"
+                                  style={{
+                                    opacity:
+                                      0.2 +
+                                      (bucket.requests / maxBucketSize) * 0.8,
+                                  }}
+                                />
+                              ) : null}
+                              {bucket.tools ? (
+                                <span
+                                  className="absolute inset-x-px bottom-px h-[calc(50%-2px)] bg-secondary"
+                                  style={{
+                                    opacity:
+                                      0.2 +
+                                      (bucket.tools / maxBucketSize) * 0.8,
+                                  }}
+                                />
+                              ) : null}
+                            </button>
+                          )
+                        })}
+                      </>
+                    ) : (
+                      lane.events.map((span, index) => {
+                        const style = spanStyle(span, scale)
+                        const isSelected = selected?.id === span.id
+                        const isUnaccounted =
+                          span.includedInSessionTotal === false &&
+                          span.tokens !== null
+                        const title = `${kindLabel(span)} · ${span.label} · ${
+                          span.durationMs === null
+                            ? t.timingUnavailable
+                            : format.duration(span.durationMs)
+                        }${span.isError ? ` · ${t.traceError}` : ""}${
+                          isUnaccounted ? ` · ${t.traceNotAccounted}` : ""
+                        }`
+                        const sameKindIndex = lane.events
+                          .slice(0, index)
+                          .filter((item) => item.kind === span.kind).length
+                        return style ? (
+                          <button
+                            key={span.id}
+                            data-trace-mark=""
+                            type="button"
+                            aria-label={title}
+                            aria-pressed={isSelected}
+                            title={title}
+                            className={cn(
+                              "absolute z-10 h-2.5 min-w-1.5 cursor-pointer rounded-sm border transition-[filter,box-shadow] hover:z-20 hover:brightness-125 focus-visible:z-30",
+                              span.kind === "request" &&
+                                "border-[var(--chart-3)] bg-[var(--chart-3)]",
+                              span.kind === "tool" &&
+                                "border-border bg-secondary",
+                              span.isError &&
+                                "border-destructive bg-destructive",
+                              isUnaccounted && "border-dashed opacity-70",
+                              hasHighlights &&
+                                !highlightedIds.has(span.id) &&
+                                "opacity-20",
+                              highlightedIds.has(span.id) &&
+                                "ring-2 ring-primary ring-offset-1",
+                              isSelected &&
+                                "ring-2 ring-ring ring-offset-1 ring-offset-background"
+                            )}
+                            style={{
+                              ...style,
+                              top: `${span.kind === "request" ? 7 + (sameKindIndex % 2) * 11 : 34 + (sameKindIndex % 2) * 11}px`,
+                            }}
+                            onClick={() =>
+                              onInspectEvents(`event:${span.id}`, [span.id])
+                            }
+                          />
+                        ) : null
+                      })
+                    )}
+                    {untimedEvents.length > 0 ? (
+                      <button
+                        type="button"
+                        aria-label={t.traceUntimedEvents(untimedEvents.length)}
+                        title={t.timingUnavailable}
+                        className="absolute top-1 right-1 z-20 h-6 min-w-6 cursor-pointer rounded-sm border border-dashed bg-card px-1 text-xs text-muted-foreground"
+                        onClick={() =>
+                          onInspectEvents(
+                            `untimed:${lane.id}`,
+                            untimedEvents.map((span) => span.id)
+                          )
+                        }
+                      >
+                        ? {untimedEvents.length}
+                      </button>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
