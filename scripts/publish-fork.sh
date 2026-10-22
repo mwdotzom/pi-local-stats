@@ -57,8 +57,10 @@ gh auth setup-git >/dev/null 2>&1 || true
 LOGIN=$(gh api user --jq .login)
 say "authenticated as $LOGIN"
 if [ -z "$ACCOUNT" ]; then
-  echo "--account <github-user|org> is required" >&2
-  exit 2
+  ACCOUNT="$LOGIN"
+  say "no --account given, publishing to the authenticated account: $ACCOUNT"
+else
+  say "publishing to $ACCOUNT (override of authenticated $LOGIN)"
 fi
 
 say "building the dashboard client (shipped in the package)"
