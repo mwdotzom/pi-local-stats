@@ -52,13 +52,15 @@ const english = {
   activitySignal: "Activity signal",
   dailyRequests: "Daily requests over the selected period.",
   successRateSignal: "Success rate",
-  successRateTimeline: "Success rate over time",
+  successRateTimeline: "Overall success rate over time",
   successRateDescription:
-    "Share of recorded requests that did not fail. Days without requests are gaps.",
+    "All models combined; days without requests are gaps. Per-model rates are on the Models page.",
   successRateByModel: "Success rate by model",
   successRateByModelDescription:
-    "Daily success rate per model over the selected period.",
+    "Success rate per model over the selected period.",
   noSuccessRateData: "No measurable success rate in this period",
+  successRateHistoryUnavailable:
+    "Overall rate per model. Per-day history needs a dashboard restart (/reload, then /stats).",
   modelFootprint: "Model footprint",
   tokensByModel: "Tokens consumed by model.",
   activeProjects: "Active projects",
@@ -306,13 +308,15 @@ const french: Messages = {
   activitySignal: "Signal d’activité",
   dailyRequests: "Requêtes quotidiennes sur la période sélectionnée.",
   successRateSignal: "Taux de réussite",
-  successRateTimeline: "Taux de réussite dans le temps",
+  successRateTimeline: "Taux de réussite global dans le temps",
   successRateDescription:
-    "Part des requêtes enregistrées qui n’ont pas échoué. Les jours sans requête apparaissent comme des trous.",
+    "Tous les modèles confondus ; les jours sans requête apparaissent comme des trous. Les taux par modèle sont sur la page Modèles.",
   successRateByModel: "Taux de réussite par modèle",
   successRateByModelDescription:
-    "Taux de réussite quotidien par modèle sur la période sélectionnée.",
+    "Taux de réussite par modèle sur la période sélectionnée.",
   noSuccessRateData: "Aucun taux de réussite mesurable sur cette période",
+  successRateHistoryUnavailable:
+    "Taux global par modèle. L’historique quotidien nécessite un redémarrage du tableau de bord (/reload, puis /stats).",
   modelFootprint: "Empreinte des modèles",
   tokensByModel: "Tokens consommés par modèle.",
   activeProjects: "Projets actifs",

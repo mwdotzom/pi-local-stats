@@ -109,7 +109,10 @@ export function OverviewPage({
           </CardAction>
         </CardHeader>
         <CardContent>
-          <SuccessRateChart data={data.successTimeline ?? []} />
+          <SuccessRateChart
+            data={data.successTimeline ?? []}
+            fallback={data.models}
+          />
         </CardContent>
       </Card>
 

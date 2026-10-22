@@ -9,6 +9,7 @@ import {
 } from "recharts"
 
 import { chartTooltip } from "@/components/dashboard/ChartTooltipContent"
+import { ModelSuccessBars } from "@/components/dashboard/ModelSuccessBars"
 import { useI18n } from "@/lib/i18n"
 import { getSuccessRateColor } from "@/lib/success-rate"
 import type { StatsResponse } from "@/types"
@@ -36,9 +37,11 @@ function label(model: ModelSuccess) {
  */
 export function ModelSuccessRateChart({
   data,
+  fallback,
   limit = 8,
 }: {
   data?: StatsResponse["modelSuccess"]
+  fallback?: StatsResponse["models"]
   limit?: number
 }) {
   const { messages: t, format } = useI18n()
@@ -47,12 +50,23 @@ export function ModelSuccessRateChart({
     .toSorted((left, right) => right.requests - left.requests)
     .slice(0, limit)
 
-  if (series.length === 0)
+  if (series.length === 0) {
+    const rows = (fallback ?? []).filter((row) => row.requests > 0)
+    if (rows.length > 0)
+      return (
+        <div className="flex flex-col gap-3">
+          <ModelSuccessBars rows={rows} />
+          <p className="text-xs text-muted-foreground">
+            {t.successRateHistoryUnavailable}
+          </p>
+        </div>
+      )
     return (
       <div className="flex h-72 w-full items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
         {t.noSuccessRateData}
       </div>
     )
+  }
 
   const dates = [...new Set(series.flatMap((entry) => entry.points.map((p) => p.date)))].sort()
   const rows = dates.map((date) => {

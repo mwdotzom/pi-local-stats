@@ -89,7 +89,10 @@ export function ModelsPage({
           <CardDescription>{t.successRateByModelDescription}</CardDescription>
         </CardHeader>
         <CardContent>
-          <ModelSuccessRateChart data={data.modelSuccess ?? []} />
+          <ModelSuccessRateChart
+            data={data.modelSuccess ?? []}
+            fallback={data.models}
+          />
         </CardContent>
       </Card>
       <Card>

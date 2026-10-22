@@ -10,6 +10,7 @@ import {
 } from "recharts"
 
 import { chartTooltip } from "@/components/dashboard/ChartTooltipContent"
+import { ModelSuccessBars } from "@/components/dashboard/ModelSuccessBars"
 import { useI18n } from "@/lib/i18n"
 import { getSuccessRateColor, successRateAxisMin } from "@/lib/success-rate"
 import type { StatsResponse } from "@/types"
@@ -24,8 +25,15 @@ type TimelinePoint = StatsResponse["successTimeline"][number]
  */
 export function SuccessRateChart({
   data,
+  fallback,
 }: {
   data?: TimelinePoint[]
+  fallback?: Array<{
+    provider: string
+    model: string
+    requests: number
+    errors: number
+  }>
 }) {
   const { messages: t, format } = useI18n()
   const chartData = (data ?? []).map((point) => ({
@@ -37,12 +45,23 @@ export function SuccessRateChart({
     (point) => point.successRatePercent !== null && point.requests > 0
   )
 
-  if (measurable.length === 0)
+  if (measurable.length === 0) {
+    const rows = (fallback ?? []).filter((row) => row.requests > 0)
+    if (rows.length > 0)
+      return (
+        <div className="flex flex-col gap-3">
+          <ModelSuccessBars rows={rows} />
+          <p className="text-xs text-muted-foreground">
+            {t.successRateHistoryUnavailable}
+          </p>
+        </div>
+      )
     return (
       <div className="flex h-72 w-full items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
         {t.noSuccessRateData}
       </div>
     )
+  }
 
   const axisMin = successRateAxisMin(
     measurable.map((point) => point.successRatePercent ?? 0)

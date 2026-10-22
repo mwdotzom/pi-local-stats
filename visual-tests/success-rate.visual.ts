@@ -100,7 +100,7 @@ test("success rate timeline renders on overview and models", async ({
   await page.setViewportSize({ width: 1440, height: 1100 })
   await page.goto("/")
   await expect(
-    page.getByText("Success rate over time", { exact: true })
+    page.getByText("Overall success rate over time", { exact: true })
   ).toBeVisible()
   await page.screenshot({
     path: testInfo.outputPath("overview-success-rate.png"),
