@@ -51,6 +51,14 @@ const english = {
   errorPercentage: (value: string) => `${value} errors`,
   activitySignal: "Activity signal",
   dailyRequests: "Daily requests over the selected period.",
+  successRateSignal: "Success rate",
+  successRateTimeline: "Success rate over time",
+  successRateDescription:
+    "Share of recorded requests that did not fail. Days without requests are gaps.",
+  successRateByModel: "Success rate by model",
+  successRateByModelDescription:
+    "Daily success rate per model over the selected period.",
+  noSuccessRateData: "No measurable success rate in this period",
   modelFootprint: "Model footprint",
   tokensByModel: "Tokens consumed by model.",
   activeProjects: "Active projects",
@@ -297,6 +305,14 @@ const french: Messages = {
   errorPercentage: (value) => `${value} d’erreurs`,
   activitySignal: "Signal d’activité",
   dailyRequests: "Requêtes quotidiennes sur la période sélectionnée.",
+  successRateSignal: "Taux de réussite",
+  successRateTimeline: "Taux de réussite dans le temps",
+  successRateDescription:
+    "Part des requêtes enregistrées qui n’ont pas échoué. Les jours sans requête apparaissent comme des trous.",
+  successRateByModel: "Taux de réussite par modèle",
+  successRateByModelDescription:
+    "Taux de réussite quotidien par modèle sur la période sélectionnée.",
+  noSuccessRateData: "Aucun taux de réussite mesurable sur cette période",
   modelFootprint: "Empreinte des modèles",
   tokensByModel: "Tokens consommés par modèle.",
   activeProjects: "Projets actifs",

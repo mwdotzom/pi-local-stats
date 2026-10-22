@@ -3,6 +3,7 @@ export interface Formatters {
   number: (value: number) => string
   currency: (value: number) => string
   percent: (value: number) => string
+  successRate: (value: number | null) => string
   duration: (value: number) => string
   dateTime: (value: string, seconds?: boolean) => string
   day: (value: string) => string
@@ -38,6 +39,11 @@ export function createFormatters(locale = "en-US"): Formatters {
     style: "percent",
     maximumFractionDigits: 1,
   })
+  const successRate = new Intl.NumberFormat(locale, {
+    style: "percent",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
   const dateTimeOptions: Intl.DateTimeFormatOptions = {
     day: "2-digit",
     month: "short",
@@ -59,6 +65,8 @@ export function createFormatters(locale = "en-US"): Formatters {
     number: (value) => preciseNumber.format(value),
     currency: (value) => currency.format(value),
     percent: (value) => percent.format(value),
+    successRate: (value) =>
+      value === null || !Number.isFinite(value) ? "—" : successRate.format(value),
     duration: (value) => {
       if (!Number.isFinite(value) || value <= 0) return "—"
       if (value < 1_000) return `${Math.round(value)} ms`

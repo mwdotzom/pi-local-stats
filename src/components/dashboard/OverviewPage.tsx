@@ -10,6 +10,7 @@ import { Link } from "react-router"
 import { ActivityChart } from "@/components/dashboard/ActivityChart"
 import { MetricCard } from "@/components/dashboard/MetricCard"
 import { ModelChart } from "@/components/dashboard/ModelChart"
+import { SuccessRateChart } from "@/components/dashboard/SuccessRateChart.tsx"
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
@@ -98,6 +99,19 @@ export function OverviewPage({
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t.successRateTimeline}</CardTitle>
+          <CardDescription>{t.successRateDescription}</CardDescription>
+          <CardAction>
+            <Badge variant="outline">{rangeLabel}</Badge>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <SuccessRateChart data={data.successTimeline ?? []} />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <Card>

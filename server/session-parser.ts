@@ -300,8 +300,13 @@ export function parseSessionJsonl(
         const skill =
           toolName === "read" ? skillNameFromPath(argumentsRecord.path) : null
         if (skill) {
+          const skillId = `${sessionId}:${callId}:skill`
+          // The same tool call id can be re-emitted in a later entry of the
+          // same session file; the skill_usages primary key is (id, file_path),
+          // so a duplicate would abort the whole sync transaction.
+          if (skills.some((existing) => existing.id === skillId)) continue
           skills.push({
-            id: `${sessionId}:${callId}:skill`,
+            id: skillId,
             sourceKey: `${text(entry.id) || "missing"}:${callId}:${timestamp}:${skill}:skill`,
             skill,
             provider: currentProvider,

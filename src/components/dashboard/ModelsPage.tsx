@@ -2,6 +2,7 @@ import { BoxIcon, CoinsIcon, DatabaseIcon, SparklesIcon } from "lucide-react"
 
 import { ModelsTable } from "@/components/dashboard/DataPanels"
 import { MetricCard } from "@/components/dashboard/MetricCard"
+import { ModelSuccessRateChart } from "@/components/dashboard/ModelSuccessRateChart"
 import {
   Card,
   CardContent,
@@ -84,6 +85,15 @@ export function ModelsPage({
       </div>
       <Card>
         <CardHeader>
+          <CardTitle>{t.successRateByModel}</CardTitle>
+          <CardDescription>{t.successRateByModelDescription}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ModelSuccessRateChart data={data.modelSuccess ?? []} />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle>{t.models}</CardTitle>
           <CardDescription>{t.modelDetails}</CardDescription>
         </CardHeader>
@@ -97,6 +107,7 @@ export function ModelsPage({
             onDelete={onDelete}
             onHide={onHide}
             onShow={onShow}
+            modelSuccess={data.modelSuccess}
           />
         </CardContent>
       </Card>

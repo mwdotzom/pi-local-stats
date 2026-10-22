@@ -1,4 +1,10 @@
 import type { SqliteDatabase } from "./database.ts"
+import {
+  buildModelSuccessTimeline,
+  buildSuccessTimeline,
+  successDayKeys,
+  type DailySuccessRow,
+} from "./success-rate.ts"
 import { numeric, projectLabel } from "./stats-values.ts"
 export { getSessions, getSessionTrace } from "./session-stats.ts"
 import type {
@@ -199,6 +205,32 @@ export function getStats(
       "SELECT DISTINCT model FROM accounted_usage WHERE model <> 'unknown' ORDER BY model"
     )
     .all() as Array<{ model: string }>
+  const modelPairs = db
+    .prepare(
+      `SELECT provider, model FROM accounted_usage${requestWhere.clause} AND provider <> 'unknown' AND model <> 'unknown' GROUP BY provider, model ORDER BY provider, model`
+    )
+    .all(...requestWhere.values) as Array<{ provider: string; model: string }>
+
+  const dailySuccessRows = db
+    .prepare(
+      `SELECT substr(timestamp, 1, 10) AS date, provider, model, COALESCE(SUM(request_count), 0) AS requests, COALESCE(SUM(is_error), 0) AS errors FROM accounted_usage${requestWhere.clause} GROUP BY date, provider, model ORDER BY date`
+    )
+    .all(...requestWhere.values) as Array<Record<string, unknown>>
+  const successRows: DailySuccessRow[] = dailySuccessRows.map((row) => ({
+    date: String(row.date),
+    provider: String(row.provider),
+    model: String(row.model),
+    requests: numeric(row.requests),
+    errors: numeric(row.errors),
+  }))
+  const firstSuccessDate = successRows[0]?.date
+  const successDays = successDayKeys(filters.range, firstSuccessDate)
+  const successTimeline = buildSuccessTimeline(successRows, successDays)
+  const modelSuccess = buildModelSuccessTimeline(
+    successRows,
+    successDays,
+    modelPairs
+  )
 
   const timeseries = fillTimeseries(
     (
@@ -357,6 +389,8 @@ export function getStats(
       averageDurationMs: numeric(aggregate.average_duration),
     },
     timeseries,
+    successTimeline,
+    modelSuccess,
     models: modelsSummary,
     hiddenModels,
     providers: providerSummary,

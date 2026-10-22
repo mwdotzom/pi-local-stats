@@ -2,6 +2,9 @@ import { Menu } from "@base-ui/react/menu"
 import { EllipsisIcon, EyeIcon, EyeOffIcon, Trash2Icon } from "lucide-react"
 
 import { EmptyRows } from "@/components/dashboard/EmptyRows"
+import {
+  SuccessRateSparkline,
+} from "@/components/dashboard/SuccessRateChart.tsx"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useI18n } from "@/lib/i18n"
+import { getSuccessRateTextClass } from "@/lib/success-rate"
 import type { StatsResponse } from "@/types"
 
 export { SessionAgents, SessionsTable } from "./SessionsTable.tsx"
@@ -115,6 +119,7 @@ export function ModelsTable({
   onHide,
   onShow,
   onDelete,
+  modelSuccess,
 }: {
   rows: StatsResponse["models"]
   hiddenRows: StatsResponse["hiddenModels"]
@@ -124,6 +129,7 @@ export function ModelsTable({
   onDelete: (provider: string, model: string) => Promise<void>
   onHide: (provider: string, model: string) => Promise<void>
   onShow: (provider: string, model: string) => Promise<void>
+  modelSuccess?: StatsResponse["modelSuccess"]
 }) {
   const { messages: t, format } = useI18n()
   const isMutating = !!(hidingModel || showingModel || deletingModel)
@@ -131,6 +137,12 @@ export function ModelsTable({
     return <EmptyRows kind="model" />
 
   const maxTokens = rows.reduce((max, row) => Math.max(max, row.tokens), 1)
+  const successByModel = new Map(
+    (modelSuccess ?? []).map((entry) => [
+      `${entry.provider}/${entry.model}`,
+      entry,
+    ])
+  )
 
   return (
     <div className="flex flex-col gap-4">
@@ -143,6 +155,7 @@ export function ModelsTable({
               <TableHead className="text-right">{t.tokens}</TableHead>
               <TableHead className="text-right">{t.cache}</TableHead>
               <TableHead className="text-right">{t.apiEquivalent}</TableHead>
+              <TableHead className="text-right">{t.successRateSignal}</TableHead>
               <TableHead className="w-12">
                 <span className="sr-only">{t.modelActions}</span>
               </TableHead>
@@ -179,6 +192,13 @@ export function ModelsTable({
                 </TableCell>
                 <TableCell className="text-right font-mono font-semibold tabular-nums">
                   {format.currency(row.cost)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <ModelSuccessRate
+                    entry={successByModel.get(`${row.provider}/${row.model}`)}
+                    fallbackRequests={row.requests}
+                    fallbackErrors={row.errors}
+                  />
                 </TableCell>
                 <TableCell className="text-right">
                   <ModelActions
@@ -289,6 +309,37 @@ export function ToolsTable({ rows }: { rows: StatsResponse["tools"] }) {
         ))}
       </TableBody>
     </Table>
+  )
+}
+
+export function ModelSuccessRate({
+  entry,
+  fallbackRequests,
+  fallbackErrors,
+}: {
+  entry?: StatsResponse["modelSuccess"][number]
+  fallbackRequests: number
+  fallbackErrors: number
+}) {
+  const { format } = useI18n()
+  const requests = entry?.requests ?? fallbackRequests
+  const errors = entry?.errors ?? fallbackErrors
+  const rate =
+    entry?.successRate ??
+    (requests > 0 ? Math.min(1, Math.max(0, 1 - errors / requests)) : null)
+
+  if (rate === null)
+    return <span className="text-muted-foreground text-xs">—</span>
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <span
+        className={`font-mono font-medium tabular-nums ${getSuccessRateTextClass(rate * 100)}`}
+      >
+        {format.successRate(rate)}
+      </span>
+      {entry ? <SuccessRateSparkline points={entry.points} /> : null}
+    </div>
   )
 }
 

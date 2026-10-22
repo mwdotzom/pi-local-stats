@@ -171,6 +171,25 @@ export interface StatsResponse {
     averageDurationMs: number
   }
   timeseries: Array<{ date: string; requests: number; cost: number }>
+  successTimeline: Array<{
+    date: string
+    requests: number
+    errors: number
+    successRate: number | null
+  }>
+  modelSuccess: Array<{
+    provider: string
+    model: string
+    requests: number
+    errors: number
+    successRate: number | null
+    points: Array<{
+      date: string
+      requests: number
+      errors: number
+      successRate: number | null
+    }>
+  }>
   models: Array<{
     model: string
     provider: string
